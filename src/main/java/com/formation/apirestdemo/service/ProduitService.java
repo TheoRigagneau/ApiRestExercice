@@ -1,0 +1,127 @@
+package com.formation.apirestdemo.service;
+import com.formation.apirestdemo.model.Produit;
+import com.formation.apirestdemo.repository.ProduitRepository;
+import com.formation.apirestdemo.service.NotificationService;
+import com.formation.apirestdemo.service.ConsoleNotificationService;
+import com.formation.apirestdemo.service.EmailNotificationService;
+import com.formation.apirestdemo.service.CommandeService;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.formation.apirestdemo.exception.RessourceIntrouvableException;
+
+
+/**
+ * Service contenant la logique métier pour les produits.
+ * Le service est le chef d'orchestre : il coordonne les appels
+ * au repository et applique les règles métier.
+ */
+@Service
+public class ProduitService {
+	private final ProduitRepository produitRepository;
+	private final NotificationService notificationService;
+	/**
+	 * Injection de dépendance par constructeur.
+	 * Spring injecte automatiquement le ProduitRepository.
+	 */
+	public ProduitService(ProduitRepository produitRepository,@Qualifier("consoleNotificationService") NotificationService notificationService) {
+		this.produitRepository = produitRepository;
+		this.notificationService = notificationService;
+	}
+	/**
+	 * Retourne tous les produits.
+	 */
+	public List<Produit> recupererTous() {
+		return produitRepository.findAll();
+	}
+	/**
+	 * Retourne un produit par son ID.
+	 * @return Optional vide si le produit n'existe pas.
+	 */
+	public Optional<Produit> recupererParId(Long id) {
+		return produitRepository.findById(id);
+	}
+	/**
+	 * Crée un nouveau produit.
+	 * @param produit Le produit à créer (sans ID).
+	 * @return Le produit créé (avec ID généré).
+	 */
+
+	public Produit creer(Produit produit) {
+		// On s'assure que l'ID est null pour forcer une création (pas une mise à jour)
+		produit.setId(null);
+		notificationService.notifier("stock", "Nouveau produit : " + produit.getNom());
+		return produitRepository.save(produit);
+	}
+	/**
+	 * Met à jour un produit existant.
+	 * @param id L'ID du produit à modifier.
+	 * @param produitModifie Les nouvelles valeurs.
+	 * @return Optional contenant le produit mis à jour, ou vide si l'ID n'existe
+	pas.
+	 */
+	public Optional<Produit> mettreAJour(Long id, Produit produitModifie) {
+		return produitRepository.findById(id)
+				.map(produitExistant -> {
+					produitExistant.setNom(produitModifie.getNom());
+					produitExistant.setDescription(produitModifie.getDescription());
+					produitExistant.setPrix(produitModifie.getPrix());
+					produitExistant.setStock(produitModifie.getStock());
+					return produitRepository.save(produitExistant);
+				});
+	}
+	/**
+	 * Supprime un produit par son ID.
+	 * @return true si le produit existait et a été supprimé, false sinon.
+	 */
+	public boolean supprimer(Long id) {
+		if (produitRepository.existsById(id)) {
+			produitRepository.deleteById(id);
+			return true;
+		}
+		return false;
+	}
+	/**
+	 * Recherche des produits par nom (recherche partielle, insensible à la casse).
+	 */
+	public List<Produit> rechercherParNom(String nom) {
+		return produitRepository.findByNomContainingIgnoreCase(nom);
+	}
+
+	public Page<Produit> filtrer(String nom, Double prixMin, Double prixMax, Pageable pageable) {
+		return produitRepository.filtrer(nom, prixMin, prixMax, pageable);
+	}
+
+	public List<Produit> quantity(double stock) {
+		return produitRepository.findByStockGreaterThan(stock);
+	}
+
+	public Page<Produit> recupererTous(Pageable pageable) {
+		return produitRepository.findAll(pageable);
+	}
+
+	public Page<Produit> rechercherAvancee(
+			String nom,
+			Double prixMin,
+			Double prixMax,
+			Pageable pageable) {
+
+		return produitRepository.filtrer(
+				nom,
+				prixMin,
+				prixMax,
+				pageable
+		);
+	}
+
+	public Produit recupererParIdOuErreur(Long id) {
+		return produitRepository.findById(id)
+				.orElseThrow(() -> new RessourceIntrouvableException("Produit", id));
+	}
+
+
+}

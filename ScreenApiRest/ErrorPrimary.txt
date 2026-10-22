@@ -1,0 +1,12 @@
+**
+APPLICATION FAILED TO START
+**
+
+Description:
+
+Parameter 1 of constructor in com.formation.apirestdemo.service.ProduitService required a single bean, but 2 were found:
+        
+consoleNotificationService: defined in file [C:\coda\exercices\B2\API\Java\ex1\api-rest-demo\api-rest-demo\target\classes\com\formation\apirestdemo\service\ConsoleNotificationService.class]
+emailNotification: defined in file [C:\coda\exercices\B2\API\Java\ex1\api-rest-demo\api-rest-demo\target\classes\com\formation\apirestdemo\service\EmailNotificationService.class]
+
+This may be due to missing parameter name information
